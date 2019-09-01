@@ -7,5 +7,8 @@
         "typescript": "^3.5.3",
         "commander": "^3.0.1"
     },
-    "license": "ISC"
+    "license": "ISC",
+    "bin": {
+        "jstcc": "index.js"
+    }
 }
