@@ -1,0 +1,10 @@
+{
+    "name": "jstcc",
+    "dependencies": {
+        "@babel/parser": "^7.5.0",
+        "@babel/traverse": "^7.5.0",
+        "clipboardy": "^2.1.0",
+        "typescript": "^3.5.3",
+        "commander": "^3.0.1"
+    }
+}
