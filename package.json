@@ -6,5 +6,6 @@
         "clipboardy": "^2.1.0",
         "typescript": "^3.5.3",
         "commander": "^3.0.1"
-    }
+    },
+    "license": "ISC"
 }
