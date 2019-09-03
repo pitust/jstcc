@@ -14,7 +14,6 @@ void num_inc(t_number* t);
 void num_dec(t_number* t);
 long long int unpack_int(t_number* p);
 
-
 typedef struct 
 {
     bool real;

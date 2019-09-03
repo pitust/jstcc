@@ -25,6 +25,7 @@ function get(nm) {
     return idmap[nm];
 }
 let c_init = '';
+let g_init = '';
 let d = {};
 function cpp(n) {
     if (n instanceof Array) {
@@ -61,6 +62,9 @@ function cpp(n) {
             if (rtsym_name == '__cplusplus' && n.arguments[0].type == 'StringLiteral') {
                 return n.arguments[0].value;
             }
+            if (rtsym_name == '__assembly' && n.arguments[0].type == 'StringLiteral') {
+                return `asm volaitle(${JSON.stringify(n.arguments[0].value)})`;
+            }
             if (rtsym_name == '__loadName' && n.arguments[0].type == 'StringLiteral') {
                 return `long long ${n.arguments[0].value} = unpack_int(${cpp(n.arguments[1])})`;
             }
@@ -69,6 +73,31 @@ function cpp(n) {
             }
             if (rtsym_name == '__createGet' && n.arguments[0].type == 'StringLiteral') {
                 return `long long ${n.arguments[0].value};`;
+            }
+            if (rtsym_name == 'getCurrentLineInfo') {
+                return `str(${JSON.stringify(`${n.loc.start.line}:${n.loc.start.column}`)})`;
+            }
+            if (rtsym_name == 'defCFN' && n.arguments[0].type == 'StringLiteral') {
+                let cfn = n.arguments[0].value;
+                let re = /^\s*(?<ret>\S+)\s+(?<name>\S+)\s*\((?<args>[^\)\n]+)\)\s*$/;
+                let mr = re.exec(cfn);
+                assert(mr, 'Could parse function signature: "' + cfn + '"');
+                let { ret, name, args: rawArgs } = mr.groups;
+                let args = rawArgs.split(',').map(e => e.trim());
+                if (ret == 'void') ret = 'undefined';
+                let upkNm = {
+                    'string': 'unpack_str',
+                    'number': '(int)unpack_int',
+                    'boolean': 'unpack_bool'
+                };
+                let pkNm = {
+                    'string': 'str',
+                    'number': 'num',
+                    'boolean': 'boolify'
+                };
+                d[name] = 'undefined';
+                g_init += `t_${get(ret)}* fn_${get(name)}(t_undefined* _,${args.map((e,i) => `t_${get(e)}* a_${i}`).join(',')}){${ret != 'undefined' ? `return ${pkNm[ret]}(` : ''}${name}(${args.map((e,i) => upkNm[e] + '(a_' + i + ')').join(',')})${ret != 'undefined' && ')' || `;return v_undefined`};}`;
+                return ``;
             }
             if (rtsym_name == 'forceType') {
                 return ``;
@@ -234,6 +263,7 @@ function cppEx(n) {
     for (let t of Object.keys(Scope.types)) {
         c += cppType(t);
     }
-    return (`#include "lib/c-head.h"\n` + c + cpp(n) + `int main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
+    let genedc = cpp(n);
+    return (`#include "lib/c-head.h"\n${g_init};` + c + genedc + `int main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
 }
 module.exports = cppEx;

@@ -7,10 +7,11 @@ declare class rtsym {
     static __getName(name: string): number;
     static __assembly(asm: string): void;
     static __createGet(varName: string): void;
-    static __ofset(type: string, prop: string): void;
-    static getCurrentLineInfo(): string;
-    static memory: ArrayBuffer;
+    static __offset(type: string, prop: string): void;
     static forceType(varID: string, type: string): void;
+    static getCurrentLineInfo(): string;
+    
+    static defCFN(sig: string): void;
 }
 declare class String {
     length: number;

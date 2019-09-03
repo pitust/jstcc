@@ -14,6 +14,7 @@ module.exports = class Scope {
     force(name, type) {
         if (this.scope[name]) {
             this.scope[name] = type;
+            this.ik(name, type);
             return;
         }
         if (this.upstream == null) return;

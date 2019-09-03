@@ -57,6 +57,30 @@ function parseNode(n, s = Scope.globalScope) {
                 s.force(n.arguments[0].value, '__ctord_' + n.arguments[1].value);
                 return;
             }
+            if (rtsym_name == 'defCFN' && n.arguments[0].type == 'StringLiteral') {
+                let cfn = n.arguments[0].value;
+                let re = /^\s*(?<ret>\S+)\s+(?<name>\S+)\s*\((?<args>[^\)\n]+)\)\s*$/;
+                let mr = re.exec(cfn);
+                assert(mr, 'Could parse function signature: "' + cfn + '"');
+                let { ret, name, args: rawArgs } = mr.groups;
+                let args = rawArgs.split(',').map(e => e.trim()).map(e => {
+                    if (e == 'string') return '__ctord_' + e;
+                    return e;
+                });
+                if (ret == 'void') ret = 'undefined';
+                Scope.types[name] = {
+                    typeID: 'invalid',
+                    id: '!' + name,
+                    isa: 'func',
+                    props: {}
+                };
+                Scope.funcs['!' + name] = {
+                    rets: ret,
+                    isCtor: false,
+                    arg: args
+                }
+                return;
+            }
         }
         parseNode(n.callee, s)
         let funcType = Scope.types[n.callee.jstype];
