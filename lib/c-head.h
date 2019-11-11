@@ -1,18 +1,19 @@
 #include "stdio.h"
 #include "stddef.h"
 #include "stdlib.h"
+#include "stdint.h"
 #include "stdbool.h"
 #include "string.h"
 #define true 1
 #define false 0
 typedef struct 
 {
-    long long int real;
+    int64_t real;
 } t_number;
-t_number* num(long long int real);
+t_number* num(int64_t real);
 void num_inc(t_number* t);
 void num_dec(t_number* t);
-long long int unpack_int(t_number* p);
+int64_t unpack_int(t_number* p);
 
 typedef struct 
 {

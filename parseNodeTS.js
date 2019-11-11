@@ -37,6 +37,10 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         } else {
             n.jstype = typeAnnotationToString(n.typeAnnotation);
         }
+        
+        if (n.xfn_argc) {
+            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
+        }
         return;
     }
     if (n.type == 'NumericLiteral') {
@@ -52,6 +56,7 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         return;
     }
     if (n.type == 'CallExpression') {
+        n.callee.xfn_argc = n.arguments.length;
         parseNodeTS(n.callee, s, this_t)
         let funcType = Scope.types[n.callee.jstype];
         let funcInfo = Scope.funcs[funcType.id];
@@ -67,6 +72,9 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
             assert(funcInfo.arg[argument] == n.arguments[argument].jstype, `Wrong type, found ${n.arguments[argument].jstype}, expected ${funcInfo.arg[argument]}  <line ${n.arguments[argument].loc.start.line}; column ${n.arguments[argument].loc.start.column}>`);
         }
         n.jstype = funcInfo.rets;
+        if (n.xfn_argc) {
+            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
+        }
         return;
     }
     if (n.type == 'NewExpression') {
@@ -85,16 +93,25 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         }
         n.jstype = type.typeID;
         assert(type.typeID != 'invalid', 'Couldn\'t construct an unconstructable object')
+        if (n.xfn_argc) {
+            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
+        }
         return;
     }
     if (n.type == 'MemberExpression') {
         parseNodeTS(n.object, s, this_t);
         let propName = n.property.name;
         n.jstype = Scope.types[n.object.jstype].props[propName];
+        if (n.xfn_argc) {
+            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
+        }
         return;
     }
     if (n.type == 'Identifier') {
         n.jstype = s.get(n.name);
+        if (n.xfn_argc) {
+            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
+        }
         return;
     }
     if (n.type == 'IfStatement') {

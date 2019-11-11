@@ -23,7 +23,7 @@ class Memory {
 	constructor(len: number) {
 		rtsym.__createGet("addr");
 		rtsym.__loadName("len", len);
-		rtsym.__cplusplus("addr = (int)malloc(len);");
+		rtsym.__cplusplus("addr = (int64_t)malloc(len);");
 		this.addr = rtsym.__getName("addr");
 		this.len = len;
 	};

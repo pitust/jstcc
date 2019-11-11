@@ -52,7 +52,9 @@ t_boolean* op_gt(t_number* a, t_number* b) {
 t_number* uop_rev(t_number* a) {
     return num(-a->real);
 }
+t_string* fn_number__toString(t_number* v_this) {
 
+}
 typedef struct 
 {
     t_number* v_length;

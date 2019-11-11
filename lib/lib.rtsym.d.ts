@@ -17,6 +17,9 @@ declare class String {
     length: number;
     charCodeAt(i: number): number;
 }
+declare class Number {
+    toString(): string;
+}
 declare class cplusplusInt {
     read(): number;
     write(n: number): void;

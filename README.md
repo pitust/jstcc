@@ -16,10 +16,11 @@ jstcc -V
 # ToDo
 1. [x] For Loops
 2. [x] If statements
-8. [x] C FFI
-4. [ ] While Loops
-3. [ ] Classes in normal JS (Warning: may never happen)
-5. [ ] number.toString()
-6. [ ] Import/Export logic
-7. [ ] GC
+3. [x] C FFI
+4. [x] While Loops
+5. [x] Better error reporting for rtsym.__cplusplus
+6. [ ] number.toString()
+7. [ ] Import/Export logic
+8. [ ] GC
 9. [ ] Fully Freestanding Mode
+10. [ ] Classes in normal JS (Warning: may never happen)

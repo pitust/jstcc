@@ -257,6 +257,12 @@ function parseNode(n, s = Scope.globalScope) {
         parseNode(n.body, s2);
         return;
     }
+    if (n.type == 'WhileStatement') {
+        let s2 = s.createDownstream();
+        parseNode(n.test, s2);
+        parseNode(n.body, s2);
+        return;
+    }
     console.error(n);
     assert(false, 'Not supported: ' + n.type + ` @ ${n.loc.start.line}`);
 }

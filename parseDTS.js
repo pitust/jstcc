@@ -33,7 +33,9 @@ function typeAnnotationToString(annot) {
     if (annot.type == 'TSSymbolKeyword') return 'symbol';
     if (annot.type == 'TSVoidKeyword') return 'undefined';
     if (annot.type == 'TSUndefinedKeyword') return 'undefined';
-    if (annot.type == 'TSTypeReference') return annot.typeName.name;
+    if (annot.type == 'TSTypeReference') {
+        return annot.typeName.name;
+    }
     if (annot.type == 'TSArrayType') return '#' + typeAnnotationToString(annot.elementType);
     if (annot.type == 'TSUnionType') assert(false, `You are *NOT* allowed to use \`TSUnionType\` <line ${annot.loc.start.line}; column ${annot.loc.start.column}>.`)
     if (annot.type == 'TSAnyKeyword') assert(false, `You are *NOT* allowed to use \`any\` <line ${annot.loc.start.line}; column ${annot.loc.start.column}>.`)

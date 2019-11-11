@@ -1,6 +1,5 @@
 let Scope = require('./scope')
 const clipboardy = require('clipboardy');
-const traverse = require('@babel/traverse');
 
 function assert(a, er) {
     if (!a) {
@@ -18,15 +17,11 @@ let idmap = {
 let i = 1;
 function get(nm) {
     return nm.replace(/:/g, '_');
-    if (!idmap[nm]) {
-        idmap[nm] = ++i;
-        return i;
-    }
-    return idmap[nm];
 }
 let c_init = '';
 let g_init = '';
 let d = {};
+let file = '';
 function cpp(n) {
     if (n instanceof Array) {
         let s = '';
@@ -60,7 +55,7 @@ function cpp(n) {
         if (n.callee.type == 'MemberExpression' && n.callee.object.type == 'Identifier' && n.callee.object.name == 'rtsym' && !n.callee.computed && n.callee.property.type == 'Identifier') {
             let rtsym_name = n.callee.property.name;
             if (rtsym_name == '__cplusplus' && n.arguments[0].type == 'StringLiteral') {
-                return n.arguments[0].value;
+                return `\n#line ${n.loc.start.line} "${file.replace(/\\/g,'\\\\')}"\n` + n.arguments[0].value + `\n#line 1 "${file.replace(/\\/g,'\\\\')}"\n`;
             }
             if (rtsym_name == '__assembly' && n.arguments[0].type == 'StringLiteral') {
                 return `asm volaitle(${JSON.stringify(n.arguments[0].value)})`;
@@ -222,6 +217,9 @@ function cpp(n) {
     if (n.type == 'ForStatement') {
         return `for (${cpp(n.init)};unpack_bool(${cpp(n.test)});${cpp(n.update)}){${cpp(n.body)}}`;
     }
+    if (n.type == 'WhileStatement') {
+        return `while (unpack_bool(${cpp(n.test)})){${cpp(n.body)}}`;
+    }
     if (n.type == 'UpdateExpression') {
         return `num_${n.operator == '++' ? 'inc' : 'dec'}(${cpp(n.argument)})`;
     }
@@ -255,7 +253,7 @@ function cppDef(t) {
     let type = get(t);
     return `struct t_${type};typedef struct t_${type} t_${type};`
 }
-function cppEx(n) {
+function cppEx(astBox) {
     let c = '';
     for (let t of Object.keys(Scope.types)) {
         c += cppDef(t);
@@ -263,7 +261,11 @@ function cppEx(n) {
     for (let t of Object.keys(Scope.types)) {
         c += cppType(t);
     }
-    let genedc = cpp(n);
-    return (`#include "lib/c-head.h"\n${g_init};` + c + genedc + `int main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
+    let genedc = '';
+    for (let f in astBox) {
+        file = f;
+        genedc += `\n#line 1 "${f.replace(/\\/g,'\\\\')}"\n${cpp(astBox[f])}`;
+    }
+    return (`#line 269 "emitCPlusPlus.js"\n#include "lib/c-head.h"\n${g_init};` + c + genedc + `\n#line 269 "emitCPlusPlus.js"\nint main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
 }
 module.exports = cppEx;
