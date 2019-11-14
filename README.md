@@ -19,8 +19,8 @@ jstcc -V
 3. [x] C FFI
 4. [x] While Loops
 5. [x] Better error reporting for rtsym.__cplusplus
-6. [ ] number.toString()
-7. [ ] Import/Export logic
-8. [ ] GC
+6. [x] number.toString()
+7. [ ] GC
+8. [ ] Import/Export logic
 9. [ ] Fully Freestanding Mode
 10. [ ] Classes in normal JS (Warning: may never happen)

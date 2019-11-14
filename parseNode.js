@@ -39,7 +39,7 @@ function parseNode(n, s = Scope.globalScope) {
         return;
     }
     if (n.type == 'NumericLiteral') {
-        n.jstype = 'number';
+        n.jstype = '__ctord_number';
         return;
     }
     if (n.type == 'StringLiteral') {
@@ -47,7 +47,7 @@ function parseNode(n, s = Scope.globalScope) {
         return;
     }
     if (n.type == 'BooleanLiteral') {
-        n.jstype = 'boolean';
+        n.jstype = '__ctord_boolean';
         return;
     }
     if (n.type == 'CallExpression') {
@@ -69,6 +69,9 @@ function parseNode(n, s = Scope.globalScope) {
                 });
                 if (ret == 'void') ret = 'undefined';
                 Scope.types[name] = {
+                    props: {}
+                };
+                Scope.types['_' + args.length + '_' + name] = {
                     typeID: 'invalid',
                     id: '!' + name,
                     isa: 'func',
@@ -83,6 +86,7 @@ function parseNode(n, s = Scope.globalScope) {
             }
         }
         parseNode(n.callee, s)
+        n.callee.jstype = '_' + n.arguments.length + '_' + n.callee.jstype;
         let funcType = Scope.types[n.callee.jstype];
         let funcInfo;
         try {
@@ -143,7 +147,7 @@ function parseNode(n, s = Scope.globalScope) {
         return;
     }
     if (n.type == 'UpdateExpression') {
-        n.jstype = 'number'
+        n.jstype = '__ctord_number'
         return;
     }
     if (n.type == 'VariableDeclaration') {
@@ -216,7 +220,7 @@ function parseNode(n, s = Scope.globalScope) {
             n.jstype = '__ctord_string';
             return;
         }
-        n.jstype = (({
+        n.jstype = '__ctord_' + (({
             '!=': 'boolean',
             '!==': 'boolean',
             '==': 'boolean',

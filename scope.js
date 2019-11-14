@@ -33,7 +33,7 @@ module.exports = class Scope {
         this.ikdict[name] = ik;
     }
     constructor() {
-        this.scope = {};
+        this.scope = Object.create(null);
         this.ikdict = {};
         this.upstream = null;
     }

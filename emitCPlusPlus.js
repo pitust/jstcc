@@ -79,6 +79,7 @@ function cpp(n) {
                 assert(mr, 'Could parse function signature: "' + cfn + '"');
                 let { ret, name, args: rawArgs } = mr.groups;
                 let args = rawArgs.split(',').map(e => e.trim());
+                let use_name = `_${args.length}_` + name;
                 if (ret == 'void') ret = 'undefined';
                 let upkNm = {
                     'string': 'unpack_str',
@@ -91,7 +92,7 @@ function cpp(n) {
                     'boolean': 'boolify'
                 };
                 d[name] = 'undefined';
-                g_init += `t_${get(ret)}* fn_${get(name)}(t_undefined* _,${args.map((e,i) => `t_${get(e)}* a_${i}`).join(',')}){${ret != 'undefined' ? `return ${pkNm[ret]}(` : ''}${name}(${args.map((e,i) => upkNm[e] + '(a_' + i + ')').join(',')})${ret != 'undefined' && ')' || `;return v_undefined`};}`;
+                g_init += `t_${get(ret)}* fn_${get(use_name)}(t_undefined* _,${args.map((e,i) => `t_${get(e)}* a_${i}`).join(',')}){${ret != 'undefined' ? `return ${pkNm[ret]}(` : ''}${name}(${args.map((e,i) => upkNm[e] + '(a_' + i + ')').join(',')})${ret != 'undefined' && ')' || `;return v_undefined`};}`;
                 return ``;
             }
             if (rtsym_name == 'forceType') {
@@ -106,7 +107,7 @@ function cpp(n) {
         if (n.callee.type == 'MemberExpression') {
             return `fn_${get(n.callee.jstype)}(${[cpp(n.callee.object), ...n.arguments.map(cpp)].join(',')})`;
         } else {
-            return `fn_${get(n.callee.jstype)}(${['v_' + get(d[n.callee.jstype]), ...n.arguments.map(cpp)].join(',')})`;
+            return `fn_${get(n.callee.jstype)}(${['v_' + get(Scope.types[n.callee.jstype].classOwn || 'undefined'), ...n.arguments.map(cpp)].join(',')})`;
         }
     }
     if (n.type == 'NewExpression') {
@@ -200,7 +201,7 @@ function cpp(n) {
                     o += `t_${get(rets)}* ctor_${get(class_name)}(${args}){t_${get('__ctord_' + class_name)}* v_${get('this')} = getProto_${get('__ctord_' + class_name)}();${cpp(node.body)}return v_${get('this')};};`
                     d[fn_name] = class_name;
                 } else {
-                    let fn_type = Scope.types[(!node.static ? '__ctord_' : '') + class_name].props[fn_name];
+                    let fn_type = `_${node.params.length}_` + Scope.types[(!node.static ? '__ctord_' : '') + class_name].props[fn_name];
                     let fn_type_data = Scope.types[fn_type];
                     let args = [...(!node.static ? [`t_${get('__ctord_' + class_name)}* v_${get('this')}`] : []), ...node.params.map(e => `t_${get(e.jstype)}*  v_${get(e.name)}`)].join(',');
 
@@ -264,8 +265,8 @@ function cppEx(astBox) {
     let genedc = '';
     for (let f in astBox) {
         file = f;
-        genedc += `\n#line 1 "${f.replace(/\\/g,'\\\\')}"\n${cpp(astBox[f])}`;
+        genedc += `\n#line 1 "${f.replace(/\\/g,'\\\\')}.c"\n${cpp(astBox[f])}`;
     }
-    return (`#line 269 "emitCPlusPlus.js"\n#include "lib/c-head.h"\n${g_init};` + c + genedc + `\n#line 269 "emitCPlusPlus.js"\nint main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
+    return (`#line 269 "emitCPlusPlus.js"\n#include "lib/c-head.h"\n${g_init};\n#line 1 "all.d.ts.c"\n` + c + genedc + `\n#line 269 "emitCPlusPlus.js"\nint main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
 }
 module.exports = cppEx;

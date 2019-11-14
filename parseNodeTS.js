@@ -7,13 +7,13 @@ function assert(a, er) {
     }
 }
 function typeAnnotationToString(annot) {
-    if (annot.type == 'TSNumberKeyword') return 'number';
+    if (annot.type == 'TSNumberKeyword') return '__ctord_number';
     if (annot.type == 'TSFunctionType') {
         // TODO: TSFunctionType
         assert(false, `You are *NOT* allowed to use \`TSFunctionType\` <line ${annot.loc.start.line}; column ${annot.loc.start.column}>.`)
     }
     if (annot.type == 'TSStringKeyword') return '__ctord_string';
-    if (annot.type == 'TSBooleanKeyword') return 'boolean';
+    if (annot.type == 'TSBooleanKeyword') return '__ctord_boolean';
     if (annot.type == 'TSSymbolKeyword') return 'symbol';
     if (annot.type == 'TSVoidKeyword') return 'undefined';
     if (annot.type == 'TSUndefinedKeyword') return 'undefined';
@@ -37,14 +37,10 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         } else {
             n.jstype = typeAnnotationToString(n.typeAnnotation);
         }
-        
-        if (n.xfn_argc) {
-            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
-        }
         return;
     }
     if (n.type == 'NumericLiteral') {
-        n.jstype = 'number';
+        n.jstype = '__ctord_number';
         return;
     }
     if (n.type == 'StringLiteral') {
@@ -52,12 +48,12 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         return;
     }
     if (n.type == 'BooleanLiteral') {
-        n.jstype = 'boolean';
+        n.jstype = '__ctord_boolean';
         return;
     }
     if (n.type == 'CallExpression') {
-        n.callee.xfn_argc = n.arguments.length;
-        parseNodeTS(n.callee, s, this_t)
+        parseNodeTS(n.callee, s, this_t);
+        n.callee.jstype = '_' + n.arguments.length + '_' + n.callee.jstype;
         let funcType = Scope.types[n.callee.jstype];
         let funcInfo = Scope.funcs[funcType.id];
         assert(funcInfo != undefined, `Function \`${n.callee.jstype}\` does not exist`);
@@ -72,9 +68,6 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
             assert(funcInfo.arg[argument] == n.arguments[argument].jstype, `Wrong type, found ${n.arguments[argument].jstype}, expected ${funcInfo.arg[argument]}  <line ${n.arguments[argument].loc.start.line}; column ${n.arguments[argument].loc.start.column}>`);
         }
         n.jstype = funcInfo.rets;
-        if (n.xfn_argc) {
-            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
-        }
         return;
     }
     if (n.type == 'NewExpression') {
@@ -93,25 +86,16 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
         }
         n.jstype = type.typeID;
         assert(type.typeID != 'invalid', 'Couldn\'t construct an unconstructable object')
-        if (n.xfn_argc) {
-            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
-        }
         return;
     }
     if (n.type == 'MemberExpression') {
         parseNodeTS(n.object, s, this_t);
         let propName = n.property.name;
         n.jstype = Scope.types[n.object.jstype].props[propName];
-        if (n.xfn_argc) {
-            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
-        }
         return;
     }
     if (n.type == 'Identifier') {
         n.jstype = s.get(n.name);
-        if (n.xfn_argc) {
-            n.jstype = '_' + n.xfn_argc + '_' + n.jstype;
-        }
         return;
     }
     if (n.type == 'IfStatement') {
@@ -181,7 +165,7 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
             n.jstype = '__ctord_string';
             return;
         }
-        n.jstype = (({
+        n.jstype = '__ctord_' + (({
             '!=': 'boolean',
             '!==': 'boolean',
             '==': 'boolean',
@@ -205,7 +189,7 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
     }
     if (n.type == 'UnaryExpression') {
         parseNodeTS(n.argument, s, this_t);
-        n.jstype = (({
+        n.jstype = '__ctord_' + (({
             '!': 'boolean',
             '+': 'number',
             '-': 'number',
@@ -301,15 +285,19 @@ function parseNodeTS(n, s = Scope.globalScope, this_t = 'invalid') {
                     });
                 } else {
                     rets = node.returnType ? typeAnnotationToString(node.returnType.typeAnnotation) : 'undefined';
-                    Scope.funcs['!' + name + '::' + node.key.name] = {
+                    Scope.funcs['_' + args.length + '!' + name + '::' + node.key.name] = {
                         rets,
                         arg: args
                     }
                     Scope.types[name + '::' + node.key.name] = {
-                        typeID: rets,
-                        id: '!' + name + '::' + node.key.name,
-                        isa: 'func',
                         props: {}
+                    };
+                    Scope.types['_' + args.length + '_' + name + '::' + node.key.name] = {
+                        typeID: rets,
+                        id: '_' + args.length + '!' + name + '::' + node.key.name,
+                        isa: 'func',
+                        props: {},
+                        classOwn: name
                     };
                     Scope.types[(node.static ? '' : '__ctord_') + name].props[node.key.name] = name + '::' + node.key.name;
                 }

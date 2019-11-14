@@ -19,6 +19,7 @@ declare class String {
 }
 declare class Number {
     toString(): string;
+    toString(radix: number): string;
 }
 declare class cplusplusInt {
     read(): number;

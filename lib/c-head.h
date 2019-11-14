@@ -41,3 +41,8 @@ char* unpack_str(t_string* p);
 
 t_string* strop_plus(t_string* a, t_string* b);
 t_number* fn_string__charCodeAt(t_string* v_this, t_number* v_addr);
+t_string* fn__0_number__toString(t_number* v_this);
+
+
+#define t___ctord_number t_number
+#define t___ctord_boolean t_boolean

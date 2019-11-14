@@ -23,13 +23,13 @@ function loadFile(f) {
 }
 
 function typeAnnotationToString(annot) {
-    if (annot.type == 'TSNumberKeyword') return 'number';
+    if (annot.type == 'TSNumberKeyword') return '__ctord_number';
     if (annot.type == 'TSFunctionType') {
         // TODO: TSFunctionType
         assert(false, `You are *NOT* allowed to use \`TSFunctionType\` <line ${annot.loc.start.line}; column ${annot.loc.start.column}>.`)
     }
     if (annot.type == 'TSStringKeyword') return '__ctord_string';
-    if (annot.type == 'TSBooleanKeyword') return 'boolean';
+    if (annot.type == 'TSBooleanKeyword') return '__ctord_boolean';
     if (annot.type == 'TSSymbolKeyword') return 'symbol';
     if (annot.type == 'TSVoidKeyword') return 'undefined';
     if (annot.type == 'TSUndefinedKeyword') return 'undefined';
@@ -84,12 +84,12 @@ function parseDTS(n) {
         if (name == 'Boolean') name = 'boolean';
         types[name] = {
             isa: 'normal',
-            props: {},
+            props: Object.create(null),
             dts: true
         };
         types['__ctord_' + name] = {
             isa: 'normal',
-            props: {},
+            props: Object.create(null),
             dts: true
         }; 
         for (let node of n.body.body) {
@@ -104,13 +104,13 @@ function parseDTS(n) {
                         arg: args,
                         dts: true
                     }
-                    Object.assign(types[name], {
+                    types['_' + args.length + '_' + name] = {
                         typeID: rets,
                         id: '!' + name,
                         isa: 'func',
                         props: {},
                         dts: true
-                    });
+                    }
                 } else {
                     let rets = node.returnType ? '__ctord_' + typeAnnotationToString(node.returnType.typeAnnotation) : 'invalid';
                     assert(rets != 'invalid', `Doesn't rets <line ${node.loc.start.line}; column ${node.loc.start.column}>.`)
@@ -121,6 +121,10 @@ function parseDTS(n) {
                         dts: true
                     }
                     types[name + '::' + methName] = {
+                        props: {},
+                        dts: true
+                    };
+                    types['_' + args.length + '_' + name + '::' + methName] = {
                         typeID: rets,
                         id: '!' + name + '::' + methName,
                         isa: 'func',
@@ -135,18 +139,24 @@ function parseDTS(n) {
             } else if (node.type == 'TSDeclareMethod') {
                 let rets = node.returnType ? typeAnnotationToString(node.returnType.typeAnnotation) : 'undefined';
                 let args = node.params.map(e => typeAnnotationToString(e.typeAnnotation.typeAnnotation));
-                funcs['!' + name + '::' + node.key.name] = {
+                funcs['_' + args.length + '!' + name + '::' + node.key.name] = {
                     rets,
                     arg: args,
                     dts: true
                 }
                 types[name + '::' + node.key.name] = {
-                    typeID: rets,
-                    id: '!' + name + '::' + node.key.name,
-                    isa: 'func',
                     props: {},
                     dts: true
                 };
+                types['_' + args.length + '_' + name + '::' + node.key.name] = {
+                    typeID: rets,
+                    id: '_' + args.length + '!' + name + '::' + node.key.name,
+                    isa: 'func',
+                    props: {},
+                    dts: true,
+                    classOwn: name
+                };
+                //console.debug('[loaded symbol]','_' + args.length + '_' + name + '::' + node.key.name);
                 types[(node.static ? '' : '__ctord_') + name].props[node.key.name] = name + '::' + node.key.name;
             } else if (node.type == 'ClassProperty') {
                 let t = typeAnnotationToString(node.typeAnnotation.typeAnnotation);
