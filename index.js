@@ -10,6 +10,7 @@ program
     .option('-o, --output-file <o>', 'Set the output file')
     .option('-c, --no-linker', 'Don\'t run linker')
     .option('--freestanding', 'Don\'t link against stdjslib.js')
+    .option('--no-rtti', 'Disable RTTI symbols')
     .option('--cc <cc>', 'Set C Compiler (Also CC env var)')
     .option('-6, --allow-es6-imports', 'Allow es6 imports (exprerimental, TODO)');
 program.parse(process.argv);
@@ -19,4 +20,4 @@ if (!program.freestandig) {
 let opt = '0';
 if (program.optimize) opt = '3';
 if (program.small) opt = 's';
-build(program.args, opt, program.outputFile || 'a', program.linker, program.cc || process.env.CC || 'clang', program.small);
+build(program.args, opt, program.outputFile || 'a', program.linker, program.cc || process.env.CC || 'clang', program.small, program.noRtti);

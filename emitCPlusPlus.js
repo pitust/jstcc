@@ -72,6 +72,9 @@ function cpp(n) {
             if (rtsym_name == 'getCurrentLineInfo') {
                 return `str(${JSON.stringify(`${n.loc.start.line}:${n.loc.start.column}`)})`;
             }
+            if (rtsym_name == 'gcForceFree') {
+                return `sweep();`;
+            }
             if (rtsym_name == 'defCFN' && n.arguments[0].type == 'StringLiteral') {
                 let cfn = n.arguments[0].value;
                 let re = /^\s*(?<ret>\S+)\s+(?<name>\S+)\s*\((?<args>[^\)\n]+)\)\s*$/;
@@ -236,17 +239,17 @@ function cpp(n) {
     } catch (e) { }
     assert(false, 'Not supported: ' + n.type + ` @ line ${n.loc.start.line}`);
 }
-function createCopyCtor(t, t_info) {
+function createCopyCtor(t, t_info, rttiID) {
     let fields = Object.keys(t_info.props);
     fields = fields.map(e => `a->v_${get(e)}=v_${t}->v_${get(e)}`);
-    return `t_${t}* getProto_${t}(){t_${t}* a = malloc(sizeof(t_${t}));${fields.join(';')};return a;}`;
+    return `t_${t}* getProto_${t}(){t_${t}* a = gc_alloc(sizeof(t_${t}));a->rttiID = ${rttiID};${fields.join(';')};return a;}`;
 }
-function cppType(t) {
+function cppType(t, rttiID) {
     if (Scope.types[t].dts) return '';
     let t_info = Scope.types[t];
     let type = get(t);
     c_init += `v_${type} = malloc(sizeof(t_${type}));`;
-    return `struct t_${type} {${Object.keys(t_info.props).map(k => `t_${get(t_info.props[k])}* v_${k};`).join('')}char pad;};t_${type}* v_${type};${createCopyCtor(type, t_info)}`;
+    return `struct t_${type} {uint64_t rttiID;${Object.keys(t_info.props).map(k => `t_${get(t_info.props[k])}* v_${k};`).join('')}};t_${type}* v_${type};${createCopyCtor(type, t_info, rttiID)}`;
 
 }
 function cppDef(t) {
@@ -254,19 +257,35 @@ function cppDef(t) {
     let type = get(t);
     return `struct t_${type};typedef struct t_${type} t_${type};`
 }
-function cppEx(astBox) {
+function cppEx(astBox, rtti, shouldILink) {
     let c = '';
+    let rttiTypeTable = ['string','number','boolean'];
     for (let t of Object.keys(Scope.types)) {
         c += cppDef(t);
     }
     for (let t of Object.keys(Scope.types)) {
-        c += cppType(t);
+        if (rttiTypeTable.includes(t)) {
+            c += cppType(t, rttiTypeTable.indexOf(t));
+        } else {
+            c += cppType(t, rttiTypeTable.push(t) - 1);
+        }
     }
     let genedc = '';
     for (let f in astBox) {
         file = f;
         genedc += `\n#line 1 "${f.replace(/\\/g,'\\\\')}.c"\n${cpp(astBox[f])}`;
     }
-    return (`#line 269 "emitCPlusPlus.js"\n#include "lib/c-head.h"\n${g_init};\n#line 1 "all.d.ts.c"\n` + c + genedc + `\n#line 269 "emitCPlusPlus.js"\nint main() {${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);}`).replace(/;;+/g, ';');
+    let rttiCode = '';
+    if (rtti) {
+        let rttm = rttiTypeTable.map((e,i) => `if (rttiID == ${i}) return strdup(${JSON.stringify(e)});`);
+        rttiCode = `char* get_rtti_type(uint64_t rttiID){${rttm.join('')}return strdup("<unknown>");}`;
+    } else {
+        rttiCode = 'char* get_rtti_type(uint64_t rttiID){return strdup("<no-rtti>");}';
+    }
+    if (!shouldILink) {
+        rttiCode = '';
+        require('fs').writeFileSync('rttiMock.c', 'char* get_rtti_type(uint64_t rttiID){return strdup("<no-rtti>");}');
+    }
+    return (`#line 269 "emitCPlusPlus.js"\n#include "lib/c-head.h"\n${g_init};\n${rttiCode}\n#line 1 "all.d.ts.c"\n` + c + genedc + `\n#line 269 "emitCPlusPlus.js"\nint main() {gc_init();${c_init};v_undefined=malloc(sizeof(t_undefined));fn_${get('main')}(v_undefined);sweep();}`).replace(/;;+/g, ';');
 }
 module.exports = cppEx;

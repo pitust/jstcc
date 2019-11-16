@@ -1,1 +1,4 @@
 node_modules/
+tmp.exe
+tmp.c
+*.exe

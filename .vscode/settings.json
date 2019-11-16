@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.html": "html",
+        "*.c": "c",
+        "Vagrantfile": "ruby",
+        "*.pm": "plaintext",
+        "*.erb": "html",
+        "Env": "makefile",
+        "env": "plaintext",
+        "math.h": "c"
+    }
+}

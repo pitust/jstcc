@@ -9,7 +9,7 @@ let cplusplus = require('./emitCPlusPlus');
 let fs = require('fs');
 let child_process = require('child_process');
 
-function build(inFiles, opt, out, shouldILink, cc) {
+function build(inFiles, opt, out, shouldILink, cc, noRTTI) {
     loadDTS('lib/lib.rtsym.d.ts');
     let astBox = {};
     for (let file of inFiles) {
@@ -28,10 +28,10 @@ function build(inFiles, opt, out, shouldILink, cc) {
         astBox[__dirname + '/lib/rtsym.ts'] = ast;
     }
     Scope.funcs[Scope.types.main.id].arg = [];
-    fs.writeFileSync(__dirname + '/tmp.c', cplusplus(astBox));
-    let a = child_process.spawnSync(cc, ['tmp.c', '-o', path.resolve(out) , '-O' + opt, '-ggdb', ...(shouldILink ? [__dirname + '/lib/c-head.c'] : ['-c'])], { cwd: __dirname, stdio: 'inherit' });
+    fs.writeFileSync(__dirname + '/tmp.c', cplusplus(astBox, !noRTTI, shouldILink));
+    let a = child_process.spawnSync(cc, ['tmp.c', '-lm', '-o', path.resolve(out) , '-O' + opt, '-ggdb', ...(shouldILink ? [__dirname + '/lib/c-head.c'] : ['-c'])], { cwd: __dirname, stdio: 'inherit' });
     if (!shouldILink && !fs.existsSync('chead.o')) {
-        child_process.spawnSync(cc, ['lib/c-head.c', '-o', process.cwd() + '/chead.o', '-O3', '-ggdb', '-c'], { cwd: __dirname, stdio: 'inherit' });
+        child_process.spawnSync(cc, ['lib/c-head.c', '-lm', '-o', process.cwd() + '/chead.o', '-O3', '-ggdb', '-c'], { cwd: __dirname, stdio: 'inherit' });
     }
 }
 module.exports = build;

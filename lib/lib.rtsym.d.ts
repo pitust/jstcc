@@ -8,6 +8,7 @@ declare class rtsym {
     static __assembly(asm: string): void;
     static __createGet(varName: string): void;
     static __offset(type: string, prop: string): void;
+    static gcForceFree(): void;
     static forceType(varID: string, type: string): void;
     static getCurrentLineInfo(): string;
     
