@@ -132,32 +132,12 @@ struct
     uint64_t alloced;
     heapAddrEnt *addrs;
 } addrHeap;
-uint64_t _parent(uint64_t whose)
-{
-    return whose / 2;
-}
-uint64_t _sonLeft(uint64_t whose)
-{
-    return whose * 2;
-}
-uint64_t _sonRight(uint64_t whose)
-{
-    return whose * 2 + 1;
-}
 uint64_t find_heap(uint64_t el)
 {
-    uint64_t cur = 1;
-    while (true)
-    {
-        if (cur > addrHeap.size)
-            return 0; // fail
-        if (addrHeap.addrs[cur].elem == el)
-            return cur;
-        if (addrHeap.addrs[cur].elem < el)
-            cur = _sonLeft(cur);
-        if (addrHeap.addrs[cur].elem > el)
-            cur = _sonRight(cur);
+    for (uint64_t i = 0;i < addrHeap.size;i++) {
+        if (addrHeap.addrs[i].elem == el) return i;
     }
+    return 0;
 }
 void add_heap(uint64_t x, uint64_t len)
 {
@@ -167,22 +147,15 @@ void add_heap(uint64_t x, uint64_t len)
         addrHeap.addrs[hpid].flags = 0;
         addrHeap.addrs[hpid].alloclen = len;
         addrHeap.addrs[hpid].elem = x;
+        return;
     }
-    addrHeap.size++;
     if (addrHeap.size > addrHeap.alloced)
     {
         addrHeap.addrs = realloc(addrHeap.addrs, (addrHeap.alloced *= 2) * sizeof(heapAddrEnt));
     }
     addrHeap.addrs[addrHeap.size].elem = x;
     addrHeap.addrs[addrHeap.size].alloclen = len;
-    int v = addrHeap.size;
-    while (v != 1 && addrHeap.addrs[_parent(v)].elem < addrHeap.addrs[v].elem)
-    {
-        heapAddrEnt e = addrHeap.addrs[_parent(v)];
-        addrHeap.addrs[_parent(v)] = addrHeap.addrs[v];
-        e = addrHeap.addrs[v];
-        v = _parent(v);
-    }
+    addrHeap.size++;
 }
 
 
@@ -228,8 +201,8 @@ uint64_t _sweep_area(uintptr_t start, uintptr_t max)
     {
         bc++;
         uint8_t byte = *((uint8_t *)(i));
-        shr = shr << 8;
-        shr |= byte;
+        shr = shr >> 8;
+        shr |= ((uint64_t)byte) << 56;
         uint64_t id = find_heap(shr);
         if (id == 0)
             continue;
@@ -243,6 +216,7 @@ uint64_t _sweep_area(uintptr_t start, uintptr_t max)
     }
     return bc;
 }
+char* get_rtti_type(uint64_t rttiID);
 void sweep()
 {
     uintptr_t stackCur = (uintptr_t)__builtin_frame_address(0);
@@ -261,6 +235,8 @@ void sweep()
         if (!(addrHeap.addrs[i].flags & GC_USED))
         {
             free((void *)addrHeap.addrs[i].elem);
+            // printf("[free] %s\n", get_rtti_type(*((uint64_t *)addrHeap.addrs[i].elem)), addrHeap.addrs[i].elem);
+            memset((void*)addrHeap.addrs[i].elem, 0, addrHeap.addrs[i].alloclen);
             addrHeap.addrs[i].flags |= GC_FREE;
             m++;
         }
