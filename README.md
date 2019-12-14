@@ -22,5 +22,6 @@ jstcc -V
 6. [x] number.toString()
 7. [x] GC
 8. [ ] Import/Export logic
-9. [ ] Fully Freestanding Mode
-10. [ ] Classes in normal JS (Warning: may never happen)
+9. [ ] Remove all memory leaks (valgrind)
+10. [ ] Fully Freestanding Mode
+11. [ ] Classes in normal JS (Warning: may never happen)
